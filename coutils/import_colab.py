@@ -11,6 +11,14 @@ from google.colab import auth
 from oauth2client.client import GoogleCredentials
 
 
+def extract_drive_file_id(notebook_link):
+  prefix = 'https://colab.research.google.com/drive/'
+  if not notebook_link.startswith(prefix):
+    raise ValueError('notebook_link should start with "%s"' % prefix)
+  file_id = notebook_link[len(prefix):]
+  return file_id
+
+
 def register_colab_notebooks(id_map):
   """
   Register a set of Colab notebooks so they can be imported as Python modules.
