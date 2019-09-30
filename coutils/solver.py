@@ -1,4 +1,5 @@
 import torch
+import time
 
 class Solver(object):
   """
@@ -242,21 +243,33 @@ class Solver(object):
     return acc.item()
 
 
-  def train(self):
+  def train(self, time_limit=None):
     """
     Run optimization to train the model.
     """
     num_train = self.X_train.shape[0]
     iterations_per_epoch = max(num_train // self.batch_size, 1)
     num_iterations = self.num_epochs * iterations_per_epoch
+    prev_time = start_time = time.time()
 
     for t in range(num_iterations):
+
+      cur_time = time.time()
+      if (time_limit is not None) and (t > 0):
+        next_time = cur_time - prev_time
+        if cur_time - start_time + next_time > time_limit:
+          print('(Time %.2f sec; Iteration %d / %d) loss: %f' % (
+              cur_time - start_time, t, num_iterations, self.loss_history[-1]))
+          print('End of training; next iteration will exceed the time limit.')
+          break
+      prev_time = cur_time
+
       self._step()
 
       # Maybe print training loss
       if self.verbose and t % self.print_every == 0:
-        print('(Iteration %d / %d) loss: %f' % (
-             t + 1, num_iterations, self.loss_history[-1]))
+        print('(Time %.2f sec; Iteration %d / %d) loss: %f' % (
+             time.time() - start_time, t + 1, num_iterations, self.loss_history[-1]))
 
       # At the end of every epoch, increment the epoch counter and decay
       # the learning rate.
