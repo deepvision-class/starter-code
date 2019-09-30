@@ -30,6 +30,8 @@ def register_colab_notebooks(id_map):
   Inputs:
   - id_map: Dictionary mapping module names to Google Drive IDs
   """
+  # Clear any existing ColabNotebookFinder objects from the path
+  sys.meta_path = [x for x in sys.meta_path if not isinstance(x, ColabNotebookFinder)]
   sys.meta_path.append(ColabNotebookFinder(id_map))
 
 
@@ -70,7 +72,12 @@ class ColabLoader(object):
         if cell.cell_type == 'code':
           itm = self.shell.input_transformer_manager
           code = itm.transform_cell(cell.source)
-          exec(code, mod.__dict__)
+          # exec import, class, or function cell only
+          if code.startswith('import ') or code.startswith('class ') or code.startswith('def ') or code.startswith('@'):
+            exec(code, mod.__dict__)
+    except Exception as e:
+      print(e)
+      print(code)
     finally:
       self.shell.user_ns = save_user_ns
     return mod
@@ -86,5 +93,4 @@ class ColabNotebookFinder(object):
    
     loader = ColabLoader(self.id_map)
     return loader
-
 
