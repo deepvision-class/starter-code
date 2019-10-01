@@ -11,6 +11,14 @@ from google.colab import auth
 from oauth2client.client import GoogleCredentials
 
 
+def extract_drive_file_id(notebook_link):
+  prefix = 'https://colab.research.google.com/drive/'
+  if not notebook_link.startswith(prefix):
+    raise ValueError('notebook_link should start with "%s"' % prefix)
+  file_id = notebook_link[len(prefix):]
+  return file_id
+
+
 def register_colab_notebooks(id_map):
   """
   Register a set of Colab notebooks so they can be imported as Python modules.
@@ -30,6 +38,8 @@ def register_colab_notebooks(id_map):
   Inputs:
   - id_map: Dictionary mapping module names to Google Drive IDs
   """
+  # Clear any existing ColabNotebookFinder objects from the path
+  sys.meta_path = [x for x in sys.meta_path if not isinstance(x, ColabNotebookFinder)]
   sys.meta_path.append(ColabNotebookFinder(id_map))
 
 
@@ -70,7 +80,12 @@ class ColabLoader(object):
         if cell.cell_type == 'code':
           itm = self.shell.input_transformer_manager
           code = itm.transform_cell(cell.source)
-          exec(code, mod.__dict__)
+          # exec import, class, or function cell only
+          if code.startswith('import ') or code.startswith('class ') or code.startswith('def ') or code.startswith('@'):
+            exec(code, mod.__dict__)
+    except Exception as e:
+      print(e)
+      print(code)
     finally:
       self.shell.user_ns = save_user_ns
     return mod
@@ -86,5 +101,4 @@ class ColabNotebookFinder(object):
    
     loader = ColabLoader(self.id_map)
     return loader
-
 
